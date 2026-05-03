@@ -10,7 +10,7 @@ try:
 except ImportError:
     pass
 
-def generate_predictions(model_path, dataset, src_lang, target_lang, is_nllb=False, batch_size=16):
+def generate_predictions(model_path, dataset, src_lang, target_lang, is_nllb=False, batch_size=17, tokenizer_path=None):
     print(f"\n--- Loading model from {model_path} ---")
     
     # Initialize processor for IndicTrans2
@@ -24,9 +24,9 @@ def generate_predictions(model_path, dataset, src_lang, target_lang, is_nllb=Fal
     # Load tokenizers appropriately
     try:
         if is_nllb:
-            tokenizer = AutoTokenizer.from_pretrained(model_path, src_lang=src_lang)
+            tokenizer = AutoTokenizer.from_pretrained(tokenizer_path or model_path, src_lang=src_lang, fix_mistral_regex=True)
         else:
-            tokenizer = AutoTokenizer.from_pretrained(model_path, trust_remote_code=True)
+            tokenizer = AutoTokenizer.from_pretrained(tokenizer_path or model_path, trust_remote_code=True)
             
         model = AutoModelForSeq2SeqLM.from_pretrained(model_path, trust_remote_code=True)
     except Exception as e:
@@ -66,7 +66,7 @@ def generate_predictions(model_path, dataset, src_lang, target_lang, is_nllb=Fal
                 forced_bos_token_id = tokenizer.convert_tokens_to_ids(target_lang)
             generation_kwargs["forced_bos_token_id"] = forced_bos_token_id
         else:
-            generation_kwargs["use_cache"] = True
+            generation_kwargs["use_cache"] = False
             
         with torch.no_grad():
             generated_tokens = model.generate(**inputs, **generation_kwargs)
@@ -146,7 +146,8 @@ def main():
         dataset=dataset, 
         src_lang="hin_Deva", 
         target_lang="ben_Beng",
-        is_nllb=True
+        is_nllb=True,
+        tokenizer_path="facebook/nllb-200-distilled-600M"
     )
     calculate_metrics(nllb_preds, bn_refs, hi_sources, "NLLB-600M")
 
@@ -156,7 +157,8 @@ def main():
         dataset=dataset,
         src_lang="hin_Deva",
         target_lang="ben_Beng",
-        is_nllb=False
+        is_nllb=False,
+        tokenizer_path="ai4bharat/indictrans2-indic-indic-dist-320M"
     )
     calculate_metrics(indic_preds, bn_refs, hi_sources, "IndicTrans2-320M")
 
