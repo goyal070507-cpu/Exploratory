@@ -47,7 +47,7 @@ def load_data(base_path):
     return data
 
 if __name__ == "__main__":
-    base_path = "/Users/striker/Desktop/Exploratory/bengali_hindi"
+    base_path = "./"
     print("Loading data from:", base_path)
     data = load_data(base_path)
     print(f"Loaded {len(data)} parallel sentence pairs.")

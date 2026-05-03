@@ -1,1 +1,6 @@
-.DS_Store
+hf_dataset/
+indictrans2_finetuned_hi_bn/
+nllb_finetuned_hi_bn/
+__pycache__/
+.ipynb_checkpoints/
+*.log

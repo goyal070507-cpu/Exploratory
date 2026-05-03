@@ -60,8 +60,13 @@ def generate_predictions(model_path, dataset, src_lang, target_lang, is_nllb=Fal
         generation_kwargs = {"max_length": 128}
         if is_nllb:
             # Set target language manually for NLLB generation
-            forced_bos_token_id = tokenizer.lang_code_to_id[target_lang]
+            if hasattr(tokenizer, "lang_code_to_id"):
+                forced_bos_token_id = tokenizer.lang_code_to_id[target_lang]
+            else:
+                forced_bos_token_id = tokenizer.convert_tokens_to_ids(target_lang)
             generation_kwargs["forced_bos_token_id"] = forced_bos_token_id
+        else:
+            generation_kwargs["use_cache"] = True
             
         with torch.no_grad():
             generated_tokens = model.generate(**inputs, **generation_kwargs)
@@ -118,7 +123,7 @@ def calculate_metrics(predictions, references, sources, model_name):
     }
 
 def main():
-    base_path = "/Users/striker/Desktop/Exploratory/bengali_hindi"
+    base_path = ""
     dataset_path = os.path.join(base_path, "hf_dataset")
     
     if not os.path.exists(dataset_path):
