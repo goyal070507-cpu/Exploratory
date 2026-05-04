@@ -9,6 +9,7 @@ except ImportError:
 class TranslationService:
     _instance = None
     _models = {}
+    _metrics = {}
 
     def __new__(cls):
         if cls._instance is None:
@@ -77,6 +78,28 @@ class TranslationService:
             decoded = self.ip.postprocess_batch(decoded, lang=tgt_lang)
 
         return decoded[0]
+
+    def get_metrics(self, prediction, reference, source_text):
+        if not self._metrics:
+            print("Loading evaluation metrics into memory...")
+            import evaluate
+            self._metrics['bleu'] = evaluate.load("sacrebleu")
+            self._metrics['meteor'] = evaluate.load("meteor")
+            self._metrics['bertscore'] = evaluate.load("bertscore")
+            self._metrics['comet'] = evaluate.load("comet")
+        
+        bleu = self._metrics['bleu'].compute(predictions=[prediction], references=[reference])
+        met = self._metrics['meteor'].compute(predictions=[prediction], references=[reference])
+        bert = self._metrics['bertscore'].compute(predictions=[prediction], references=[reference], lang="bn")
+        comet_s = self._metrics['comet'].compute(predictions=[prediction], references=[reference], sources=[source_text])
+
+        return {
+            'bleu': round(bleu['score'], 2),
+            'meteor': round(met['meteor'], 4),
+            'bertscore': round(bert['f1'][0], 4),
+            'comet': round(comet_s['mean_score'], 4)
+        }
+
 
 # Initialize Singleton instance
 translator = TranslationService()

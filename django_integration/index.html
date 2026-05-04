@@ -231,7 +231,12 @@
                         <option value="indictrans2">IndicTrans2-320M (Finetuned)</option>
                     </select>
                 </div>
-                <textarea id="source-text" placeholder="Enter Hindi text here..."></textarea>
+                <textarea id="source-text" placeholder="Enter Hindi text here..." style="height: 150px;"></textarea>
+                
+                <div style="margin-top: 0.5rem; display: flex; flex-direction: column; gap: 0.5rem;">
+                    <label for="reference-text" style="font-size: 0.85rem; color: var(--text-muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">Reference Bengali (Optional, for scores)</label>
+                    <textarea id="reference-text" placeholder="Paste ground-truth Bengali here to compute metrics..." style="height: 80px;"></textarea>
+                </div>
             </div>
 
             <!-- Target Pane -->
@@ -252,19 +257,19 @@
         <div class="metrics-box">
             <div class="metric">
                 <h3>BLEU Score</h3>
-                <p>{{ bleu_score }}</p>
+                <p id="metric-bleu">--</p>
             </div>
             <div class="metric">
                 <h3>METEOR</h3>
-                <p>{{ meteor_score }}</p>
+                <p id="metric-meteor">--</p>
             </div>
             <div class="metric">
                 <h3>BERTScore</h3>
-                <p>{{ bert_score }}</p>
+                <p id="metric-bert">--</p>
             </div>
             <div class="metric">
                 <h3>COMET</h3>
-                <p>{{ comet_score }}</p>
+                <p id="metric-comet">--</p>
             </div>
         </div>
     </div>
@@ -272,6 +277,7 @@
     <script>
         async function translateText() {
             const sourceText = document.getElementById('source-text').value.trim();
+            const referenceText = document.getElementById('reference-text').value.trim();
             const modelChoice = document.getElementById('model-select').value;
             const targetTextArea = document.getElementById('target-text');
             const btn = document.getElementById('translate-btn');
@@ -283,6 +289,12 @@
             btn.classList.add('loading');
             spinner.style.display = 'block';
             targetTextArea.value = '';
+            
+            // Reset metrics UI
+            document.getElementById('metric-bleu').innerText = '...';
+            document.getElementById('metric-meteor').innerText = '...';
+            document.getElementById('metric-bert').innerText = '...';
+            document.getElementById('metric-comet').innerText = '...';
 
             try {
                 const response = await fetch('/api/translate/', {
@@ -292,7 +304,8 @@
                     },
                     body: JSON.stringify({
                         text: sourceText,
-                        model: modelChoice
+                        model: modelChoice,
+                        reference: referenceText
                     })
                 });
 
@@ -300,6 +313,23 @@
                 
                 if (response.ok) {
                     targetTextArea.value = data.translation;
+                    
+                    if (data.scores) {
+                        document.getElementById('metric-bleu').innerText = data.scores.bleu.toFixed(2);
+                        document.getElementById('metric-meteor').innerText = data.scores.meteor.toFixed(4);
+                        document.getElementById('metric-bert').innerText = data.scores.bertscore.toFixed(4);
+                        document.getElementById('metric-comet').innerText = data.scores.comet.toFixed(4);
+                    } else if (referenceText) {
+                        document.getElementById('metric-bleu').innerText = 'Err';
+                        document.getElementById('metric-meteor').innerText = 'Err';
+                        document.getElementById('metric-bert').innerText = 'Err';
+                        document.getElementById('metric-comet').innerText = 'Err';
+                    } else {
+                        document.getElementById('metric-bleu').innerText = 'N/A';
+                        document.getElementById('metric-meteor').innerText = 'N/A';
+                        document.getElementById('metric-bert').innerText = 'N/A';
+                        document.getElementById('metric-comet').innerText = 'N/A';
+                    }
                 } else {
                     targetTextArea.value = "Error: " + (data.error || "Failed to translate");
                 }
